@@ -1,0 +1,1 @@
+(import ./flake.nix).outputs.devShell.x86_64-linux

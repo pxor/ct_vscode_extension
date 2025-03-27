@@ -1,15 +1,31 @@
-# Node
+# Node modules and build output
 node_modules/
-dist/
 out/
-*.log
+dist/
 
-# VS Code
-.vscode/
-.env
-
-# TypeScript
+# TypeScript build artifacts
 *.tsbuildinfo
 
-# OS
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VS Code settings
+.vscode/
+
+# Environment
+.env
+.direnv/
+
+# Nix
+/result
+/flake.lock
+*.drv
+.nix-gc-roots/
+
+# macOS
 .DS_Store
+
+# System files
+Thumbs.db
