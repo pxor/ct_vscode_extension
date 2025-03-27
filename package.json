@@ -23,6 +23,11 @@
         "command": "ct-vscode.nextStep",
         "key": "f10",
         "when": "editorTextFocus"
+      },
+      {
+        "key": "enter",
+        "command": "ct-vscode.onEnter",
+        "when": "editorTextFocus"
       }
     ]
   },

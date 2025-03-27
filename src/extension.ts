@@ -6,13 +6,13 @@ let panel: vscode.WebviewPanel | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('ct-vscode is now active!');
-
+	
 	const toggleCT = vscode.commands.registerCommand('ct-vscode.toggleCT', () => {
 		if (ctStarted) {
 			// Stop CT
 			ctStarted = false;
 			vscode.window.showInformationMessage('CodeTracer stopped.');
-
+			
 			if (nextStepDisposable) {
 				nextStepDisposable.dispose();
 				nextStepDisposable = null;
@@ -25,7 +25,49 @@ export function activate(context: vscode.ExtensionContext) {
 			// Start CT
 			ctStarted = true;
 			vscode.window.showInformationMessage('CodeTracer backend started!');
-
+			
+			const editor = vscode.window.activeTextEditor;
+			if (editor) {
+			
+				const document = editor.document;
+			
+				// Define a function to create decoration types with different labels
+				function createDecoration(contentText: string, tooltip: string): [vscode.TextEditorDecorationType, vscode.DecorationOptions[]] {
+				const decorationType = vscode.window.createTextEditorDecorationType({
+					after: {
+					contentText,
+					backgroundColor: '#444',
+					color: 'white',
+					margin: '0 0 0 1em',
+					},
+				});
+			
+				const decorations: vscode.DecorationOptions[] = [];
+			
+				for (let line = 0; line < document.lineCount; line++) {
+					const lineText = document.lineAt(line);
+					const pos = new vscode.Position(line, lineText.text.length);
+			
+					decorations.push({
+					range: new vscode.Range(pos, pos),
+					hoverMessage: tooltip,
+					});
+				}
+			
+				return [decorationType, decorations];
+				}
+				
+				// Create different types of decorations
+				const [nextDecoration, nextDecorations] = createDecoration('▶ Next', 'Move to the next step');
+				const [infoDecoration, infoDecorations] = createDecoration('ℹ Info', 'More info about this line');
+				const [warnDecoration, warnDecorations] = createDecoration('⚠ Warn', 'Potential issue here');
+				
+				// Apply them all
+				editor.setDecorations(nextDecoration, nextDecorations);
+				editor.setDecorations(infoDecoration, infoDecorations);
+				editor.setDecorations(warnDecoration, warnDecorations);
+			}
+				
 			// Show webview panel
 			panel = vscode.window.createWebviewPanel(
 				'codeTracer', // internal identifier
