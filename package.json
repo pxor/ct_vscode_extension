@@ -14,13 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "ct-vscode.startCT",
-        "title": "Start CodeTracer"
-      },
-      {
-        "command": "ct-vscode.nextStep",
-        "title": "Step Next",
-        "when": "editorTextFocus"
+        "command": "ct-vscode.toggleCT",
+        "title": "Toggle CodeTracer"
       }
     ],
     "keybindings": [

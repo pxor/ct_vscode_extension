@@ -1,32 +1,90 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let ctStarted = false;
+let nextStepDisposable: vscode.Disposable | null = null;
+let panel: vscode.WebviewPanel | null = null;
+
 export function activate(context: vscode.ExtensionContext) {
+	console.log('ct-vscode is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "ct-vscode" is now active!');
+	const toggleCT = vscode.commands.registerCommand('ct-vscode.toggleCT', () => {
+		if (ctStarted) {
+			// Stop CT
+			ctStarted = false;
+			vscode.window.showInformationMessage('CodeTracer stopped.');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const start = vscode.commands.registerCommand('ct-vscode.startCT', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('CodeTracer backend started!');
+			if (nextStepDisposable) {
+				nextStepDisposable.dispose();
+				nextStepDisposable = null;
+			}
+			if (panel) {
+				panel.dispose();
+				panel = null;
+			}
+		} else {
+			// Start CT
+			ctStarted = true;
+			vscode.window.showInformationMessage('CodeTracer backend started!');
+
+			// Show webview panel
+			panel = vscode.window.createWebviewPanel(
+				'codeTracer', // internal identifier
+				'CodeTracer', // title shown to the user
+				vscode.ViewColumn.Beside, // show beside editor
+				{
+					enableScripts: true,
+				}
+			);
+
+			panel.webview.html = getWebviewContent();
+
+			// Register nextStep command
+			nextStepDisposable = vscode.commands.registerCommand('ct-vscode.nextStep', () => {
+				vscode.window.showInformationMessage('Next clicked');
+				if (panel) {
+					panel.webview.postMessage({ command: 'next' });
+				}
+			});
+
+			context.subscriptions.push(nextStepDisposable);
+		}
 	});
 
-	const nextStep = vscode.commands.registerCommand('ct-vscode.nextStep', () => {
-		vscode.window.showInformationMessage('Next clicked');
-	})
-
-	context.subscriptions.push(start);
-	context.subscriptions.push(nextStep);
-
+	context.subscriptions.push(toggleCT);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+	if (nextStepDisposable) nextStepDisposable.dispose();
+	if (panel) panel.dispose();
+}
+
+function getWebviewContent(): string {
+	return `
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<title>CodeTracer</title>
+			<style>
+				body { font-family: sans-serif; padding: 1em; }
+			</style>
+		</head>
+		<body>
+			<h1>Welcome to CodeTracer</h1>
+			<p>This is the CodeTracer view. Click "Next" to proceed through steps.</p>
+			<div id="log"></div>
+			<script>
+				const log = document.getElementById('log');
+				window.addEventListener('message', event => {
+					const message = event.data;
+					if (message.command === 'next') {
+						const entry = document.createElement('p');
+						entry.textContent = 'Received "Next" step at ' + new Date().toLocaleTimeString();
+						log.appendChild(entry);
+					}
+				});
+			</script>
+		</body>
+		</html>
+	`;
+}
