@@ -16,7 +16,7 @@
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            nodejs_18
+            nodejs_20
             yarn
             nodePackages.typescript
             nodePackages.eslint
