@@ -1,4 +1,9 @@
 import * as vscode from 'vscode';
+import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
+import * as os from 'os';
+
+let backendProcess: ChildProcess | null = null;
 
 let ctStarted = false;
 let nextStepDisposable: vscode.Disposable | null = null;
@@ -17,15 +22,48 @@ export function activate(context: vscode.ExtensionContext) {
 				nextStepDisposable.dispose();
 				nextStepDisposable = null;
 			}
+
 			if (panel) {
 				panel.dispose();
 				panel = null;
+			}
+
+			if (backendProcess) {
+				backendProcess.kill();
+				backendProcess = null;
 			}
 		} else {
 			// Start CT
 			ctStarted = true;
 			vscode.window.showInformationMessage('CodeTracer backend started!');
+			const callerPid = process.pid.toString();
+
+			// Resolve trace paths
+			const traceDir = path.join(os.homedir(), '.local', 'share', 'codetracer', 'trace-1');
+			const traceFile = path.join(traceDir, 'trace.json');
+			const metadataFile = path.join(traceDir, 'trace_metadata.json');
 			
+			// Adjust for your actual Rust binary path
+			const backendPath = path.join(context.extensionPath, 'db-backend', 'db-backend');
+			
+			backendProcess = spawn(backendPath, [callerPid, traceFile, metadataFile], {
+				cwd: context.extensionPath,
+				env: process.env,
+				stdio: 'pipe',
+			});
+			
+			backendProcess.stdout?.on('data', data => {
+				console.log(`[backend stdout]: ${data.toString()}`);
+			});
+			
+			backendProcess.stderr?.on('data', data => {
+				console.error(`[backend stderr]: ${data.toString()}`);
+			});
+			
+			backendProcess.on('exit', code => {
+				console.warn(`Rust backend exited with code ${code}`);
+				vscode.window.showWarningMessage(`CodeTracer backend exited (${code})`);
+			});
 			const editor = vscode.window.activeTextEditor;
 			if (editor) {
 			
@@ -80,6 +118,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 			panel.webview.html = getWebviewContent(panel, context);
 
+			console.log(panel)
+			console.log(panel.webview)
+
 			// Register nextStep command
 			nextStepDisposable = vscode.commands.registerCommand('ct-vscode.nextStep', () => {
 				vscode.window.showInformationMessage('Next clicked');
@@ -101,25 +142,56 @@ export function deactivate() {
 }
 
 function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
-	const scriptUri = panel.webview.asWebviewUri(
-		vscode.Uri.joinPath(context.extensionUri, 'media', 'karax_frontend.js')
+	const uiJs = panel.webview.asWebviewUri(
+		vscode.Uri.joinPath(context.extensionUri, 'media', 'ui.js')
+	);
+	const frontendBundle = panel.webview.asWebviewUri(
+		vscode.Uri.joinPath(context.extensionUri, 'media', 'frontend_bundle.js')
+	);
+	const thirdParty = panel.webview.asWebviewUri(
+		vscode.Uri.joinPath(context.extensionUri, 'media', 'third_party' , 'jstree.min.js')
 	);
 
 	return `
-		<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<title>CodeTracer</title>
-			<style>
-				body { font-family: sans-serif; padding: 1em; }
-			</style>
-		</head>
-		<body>
-			<div id="ROOT"></div>
+		<!doctype html>
+		<html>
+			<head>
+				<meta charset='utf-8'>
+				<title>CodeTracer</title>
+			<script>
+				inElectron = false
+				loadScripts = true
+			</script>
+			</head>
+			<body>
+				<div id='menu' class='menu'>
+				</div>
+				<div id='welcomeScreen'>
 
-			<script src="${scriptUri}"></script>
-		</body>
+				</div>
+				<div id='root-container' class='container'>
+				<div id='ROOT'>
+					<div id="context-menu-container" style="display: none;"></div>
+					<div id='fixed-search'>
+					</div>
+					<section id="main">
+					</section>
+				</div>
+
+
+				<footer>
+					<div id='search-results'>
+					</div>
+					<div id='status'>
+					</div>
+				</footer>
+				</div>
+				<script src="${frontendBundle}" type="text/javascript"> </script>
+				<script src='${thirdParty}' type='text/javascript'></script>
+				<script src='${uiJs}'></script>
+
+			</body>
 		</html>
+
 	`;
 }
