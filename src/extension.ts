@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			);
 
-			panel.webview.html = getWebviewContent();
+			panel.webview.html = getWebviewContent(panel, context);
 
 			// Register nextStep command
 			nextStepDisposable = vscode.commands.registerCommand('ct-vscode.nextStep', () => {
@@ -100,7 +100,11 @@ export function deactivate() {
 	if (panel) panel.dispose();
 }
 
-function getWebviewContent(): string {
+function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
+	const scriptUri = panel.webview.asWebviewUri(
+		vscode.Uri.joinPath(context.extensionUri, 'media', 'karax_frontend.js')
+	);
+
 	return `
 		<!DOCTYPE html>
 		<html lang="en">
@@ -112,20 +116,9 @@ function getWebviewContent(): string {
 			</style>
 		</head>
 		<body>
-			<h1>Welcome to CodeTracer</h1>
-			<p>This is the CodeTracer view. Click "Next" to proceed through steps.</p>
-			<div id="log"></div>
-			<script>
-				const log = document.getElementById('log');
-				window.addEventListener('message', event => {
-					const message = event.data;
-					if (message.command === 'next') {
-						const entry = document.createElement('p');
-						entry.textContent = 'Received "Next" step at ' + new Date().toLocaleTimeString();
-						log.appendChild(entry);
-					}
-				});
-			</script>
+			<div id="ROOT"></div>
+
+			<script src="${scriptUri}"></script>
 		</body>
 		</html>
 	`;
