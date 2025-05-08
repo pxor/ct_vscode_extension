@@ -2,36 +2,79 @@ import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
+import * as utils from './utils';
+import { create } from 'domain';
 
 let backendProcess: ChildProcess | null = null;
 
 let ctStarted = false;
+
 let nextStepDisposable: vscode.Disposable | null = null;
-let panel: vscode.WebviewPanel | null = null;
+let statePanel: vscode.WebviewPanel | null = null;
+let calltracePanel: vscode.WebviewPanel | null = null;
+let eventLogPanel: vscode.WebviewPanel | null = null;
+let scratchpadPanel: vscode.WebviewPanel | null = null;
+let terminalOutputPanel: vscode.WebviewPanel | null = null;
+
 const TYPE_KIND_INT = 7
 
 function intValue(i: number): any {
-	return {kind: TYPE_KIND_INT, i: i.toString()}
+	return { kind: TYPE_KIND_INT, i: i.toString() }
+}
+
+function createComponentWebviewPanel(viewType: string, title: string): vscode.WebviewPanel {
+	return vscode.window.createWebviewPanel(
+		viewType,
+		title,
+		vscode.ViewColumn.Two,
+		{
+			enableScripts: true,
+			retainContextWhenHidden: true
+		}
+	);
+}
+function disposePanels() {
+	if (statePanel) {
+		statePanel.dispose();
+		statePanel = null;
+	}
+
+	if (calltracePanel) {
+		calltracePanel.dispose();
+		calltracePanel = null;
+	}
+
+	if (eventLogPanel) {
+		eventLogPanel.dispose();
+		eventLogPanel = null;
+	}
+
+	if (scratchpadPanel) {
+		scratchpadPanel.dispose();
+		scratchpadPanel = null;
+	}
+
+	if (terminalOutputPanel) {
+		terminalOutputPanel.dispose();
+		terminalOutputPanel = null;
+	}
 }
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('ct-vscode is now active!');
-	
+
 	const toggleCT = vscode.commands.registerCommand('ct-vscode.toggleCT', () => {
 		if (ctStarted) {
 			// Stop CT
 			ctStarted = false;
 			vscode.window.showInformationMessage('CodeTracer stopped.');
-			
+
 			if (nextStepDisposable) {
 				nextStepDisposable.dispose();
 				nextStepDisposable = null;
 			}
 
-			if (panel) {
-				panel.dispose();
-				panel = null;
-			}
+			disposePanels();
 
 			if (backendProcess) {
 				backendProcess.kill();
@@ -47,91 +90,102 @@ export function activate(context: vscode.ExtensionContext) {
 			const traceDir = path.join(os.homedir(), '.local', 'share', 'codetracer', 'trace-1');
 			const traceFile = path.join(traceDir, 'trace.json');
 			const metadataFile = path.join(traceDir, 'trace_metadata.json');
-			
+
 			// Adjust for your actual Rust binary path
 			const backendPath = path.join(context.extensionPath, 'db-backend', 'db-backend');
-			
+
 			// backendProcess = spawn(backendPath, [callerPid, traceFile, metadataFile], {
 			// 	cwd: context.extensionPath,
 			// 	env: process.env,
 			// 	stdio: 'pipe',
 			// });
-			
+
 			// backendProcess.stdout?.on('data', data => {
 			// 	console.log(`[backend stdout]: ${data.toString()}`);
 			// });
-			
+
 			// backendProcess.stderr?.on('data', data => {
 			// 	console.error(`[backend stderr]: ${data.toString()}`);
 			// });
-			
+
 			// backendProcess.on('exit', code => {
 			// 	console.warn(`Rust backend exited with code ${code}`);
 			// 	vscode.window.showWarningMessage(`CodeTracer backend exited (${code})`);
 			// });
 			const editor = vscode.window.activeTextEditor;
 			if (editor) {
-			
+
 				const document = editor.document;
-			
+
 				// Define a function to create decoration types with different labels
 				function createDecoration(contentText: string, tooltip: string): [vscode.TextEditorDecorationType, vscode.DecorationOptions[]] {
-				const decorationType = vscode.window.createTextEditorDecorationType({
-					after: {
-					contentText,
-					backgroundColor: '#444',
-					color: 'white',
-					margin: '0 0 0 1em',
-					},
-				});
-			
-				const decorations: vscode.DecorationOptions[] = [];
-			
-				for (let line = 0; line < document.lineCount; line++) {
-					const lineText = document.lineAt(line);
-					const pos = new vscode.Position(line, lineText.text.length);
-			
-					decorations.push({
-					range: new vscode.Range(pos, pos),
-					hoverMessage: tooltip,
+					const decorationType = vscode.window.createTextEditorDecorationType({
+						after: {
+							contentText,
+							backgroundColor: '#444',
+							color: 'white',
+							margin: '0 0 0 1em',
+						},
 					});
+
+					const decorations: vscode.DecorationOptions[] = [];
+
+					for (let line = 0; line < document.lineCount; line++) {
+						const lineText = document.lineAt(line);
+						const pos = new vscode.Position(line, lineText.text.length);
+
+						decorations.push({
+							range: new vscode.Range(pos, pos),
+							hoverMessage: tooltip,
+						});
+					}
+
+					return [decorationType, decorations];
 				}
-			
-				return [decorationType, decorations];
-				}
-				
+
 				// Create different types of decorations
 				const [nextDecoration, nextDecorations] = createDecoration('▶ Next', 'Move to the next step');
 				const [infoDecoration, infoDecorations] = createDecoration('ℹ Info', 'More info about this line');
 				const [warnDecoration, warnDecorations] = createDecoration('⚠ Warn', 'Potential issue here');
-				
+
 				// Apply them all
 				editor.setDecorations(nextDecoration, nextDecorations);
 				editor.setDecorations(infoDecoration, infoDecorations);
 				editor.setDecorations(warnDecoration, warnDecorations);
 			}
-				
-			// Show webview panel
-			panel = vscode.window.createWebviewPanel(
-				'codeTracer', // internal identifier
-				'CodeTracer', // title shown to the user
-				vscode.ViewColumn.Beside, // show beside editor
-				{
-					enableScripts: true,
-				}
-			);
 
-			panel.webview.html = getWebviewContent(panel, context);
+			// Position webviewPanels:
+			statePanel = createComponentWebviewPanel('stateComponent', 'State');
+			calltracePanel = createComponentWebviewPanel('calltraceComponent', 'Calltrace');
+			scratchpadPanel = createComponentWebviewPanel('scratchpadComponent', 'Scratchpad');
+			eventLogPanel = createComponentWebviewPanel('eventLogComponent', 'Event Log');
+			terminalOutputPanel = createComponentWebviewPanel('terminalOutputComponent', 'Terminal');
 
-			console.log(panel)
-			console.log(panel.webview)
+			statePanel.webview.html = utils.getStateWebviewContent(statePanel, context);
+			calltracePanel.webview.html = utils.getCalltraceWebviewContent(calltracePanel, context);
+			scratchpadPanel.webview.html = utils.getScratchpadWebviewContent(scratchpadPanel, context);
+			eventLogPanel.webview.html = utils.getEventLogWebviewContent(eventLogPanel, context);
+			terminalOutputPanel.webview.html = utils.getTerminalOutputWebviewContent(terminalOutputPanel, context);
+
+			setTimeout(() => {
+				terminalOutputPanel?.reveal();
+				vscode.commands.executeCommand('workbench.action.moveEditorToBelowGroup');
+				eventLogPanel?.reveal();
+				vscode.commands.executeCommand('workbench.action.moveEditorToBelowGroup');
+				vscode.commands.executeCommand('workbench.action.moveEditorLeftInGroup');
+			}, 500);
+			setTimeout(() => {
+				calltracePanel?.reveal();
+				vscode.commands.executeCommand('workbench.action.moveEditorToRightGroup');
+			}, 500);
+			statePanel.reveal(vscode.ViewColumn.Two)
 
 			// Register nextStep command
 			nextStepDisposable = vscode.commands.registerCommand('ct-vscode.nextStep', () => {
 				vscode.window.showInformationMessage('Next clicked');
-				if (panel) {
-					panel.webview.postMessage({ command: 'next' });
-					panel.webview.postMessage({ command: 'loaded-locals', values: [{expression: "a", value: intValue(10)}]})
+				if (statePanel) {
+					statePanel.webview.postMessage({ command: 'next' });
+					statePanel.webview.postMessage({ command: 'loaded-locals', values: [{ expression: "a", value: intValue(10) }] })
 				}
 			});
 
@@ -144,70 +198,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	if (nextStepDisposable) nextStepDisposable.dispose();
-	if (panel) panel.dispose();
-}
-
-function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
-	const uiJs = panel.webview.asWebviewUri(
-		vscode.Uri.joinPath(context.extensionUri, 'media', 'ui.js')
-	);
-	const frontendBundle = panel.webview.asWebviewUri(
-		vscode.Uri.joinPath(context.extensionUri, 'media', 'frontend_bundle.js')
-	);
-	const thirdParty = panel.webview.asWebviewUri(
-		vscode.Uri.joinPath(context.extensionUri, 'media', 'third_party' , 'jstree.min.js')
-	);
-	const defaultDarkTheme = panel.webview.asWebviewUri(
-		vscode.Uri.joinPath(context.extensionUri, 'media', 'styles' , 'default_dark_theme.css')
-	);
-
-	// TODO: Add .css file to webViewContent
-
-	return `
-		<!doctype html>
-		<html>
-			<head>
-				<meta charset='utf-8'>
-				<title>CodeTracer</title>
-				<link id='theme' rel='stylesheet' href='${defaultDarkTheme}'>
-			<script>
-				inElectron = false
-				loadScripts = true
-			</script>
-			</head>
-			<body>
-				<div>STATE</div>
-				<div id='stateComponent-0' class='component-container active-state'></div>
-
-				<footer>
-					<div id='search-results'>
-					</div>
-					<div id='status'>
-					</div>
-				</footer>
-				</div>
-				<script src="${frontendBundle}" type="text/javascript"> </script>
-				<script src='${thirdParty}' type='text/javascript'></script>
-				<script src='${uiJs}'></script>
-				<script>
-					let component = null
-					window.addEventListener('DOMContentLoaded', () => {
-						console.log("----- before makeComponent");
-						window.component = makeStateComponentForExtension('stateComponent-0');
-						console.log("----- after makeComponent");
-					});
-					window.addEventListener('message', event => {
-						console.log("----- this is event = ", event);
-						if (event.data.command === 'loaded-locals') {
-								console.log("----- THIS IS BEFORE REGISTER VALUES ", registerLocals);
-								registerLocals(window.component, event.data.values)
-								
-								console.log("----- THIS IS AFTER REGISTER VALUES comp = ", window.component);
-							}
-					});
-				</script>
-			</body>
-		</html>
-
-	`;
+	if (statePanel) statePanel.dispose();
+	if (calltracePanel) calltracePanel.dispose();
+	if (eventLogPanel) eventLogPanel.dispose();
 }

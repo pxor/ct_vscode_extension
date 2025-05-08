@@ -29,7 +29,25 @@
         "command": "ct-vscode.onEnter",
         "when": "editorTextFocus"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codetracer-sidebar-view",
+          "title": "CodeTracer",
+          "icon": "./public/extension/codetracer_vscode_logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "codetracer-sidebar-view": [
+        {
+          "type": "webview",
+          "id": "codetracer-sidebar-panel",
+          "name": "CodeTracer"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
