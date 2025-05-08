@@ -8,6 +8,11 @@ let backendProcess: ChildProcess | null = null;
 let ctStarted = false;
 let nextStepDisposable: vscode.Disposable | null = null;
 let panel: vscode.WebviewPanel | null = null;
+const TYPE_KIND_INT = 7
+
+function intValue(i: number): any {
+	return {kind: TYPE_KIND_INT, i: i.toString()}
+}
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('ct-vscode is now active!');
@@ -46,24 +51,24 @@ export function activate(context: vscode.ExtensionContext) {
 			// Adjust for your actual Rust binary path
 			const backendPath = path.join(context.extensionPath, 'db-backend', 'db-backend');
 			
-			backendProcess = spawn(backendPath, [callerPid, traceFile, metadataFile], {
-				cwd: context.extensionPath,
-				env: process.env,
-				stdio: 'pipe',
-			});
+			// backendProcess = spawn(backendPath, [callerPid, traceFile, metadataFile], {
+			// 	cwd: context.extensionPath,
+			// 	env: process.env,
+			// 	stdio: 'pipe',
+			// });
 			
-			backendProcess.stdout?.on('data', data => {
-				console.log(`[backend stdout]: ${data.toString()}`);
-			});
+			// backendProcess.stdout?.on('data', data => {
+			// 	console.log(`[backend stdout]: ${data.toString()}`);
+			// });
 			
-			backendProcess.stderr?.on('data', data => {
-				console.error(`[backend stderr]: ${data.toString()}`);
-			});
+			// backendProcess.stderr?.on('data', data => {
+			// 	console.error(`[backend stderr]: ${data.toString()}`);
+			// });
 			
-			backendProcess.on('exit', code => {
-				console.warn(`Rust backend exited with code ${code}`);
-				vscode.window.showWarningMessage(`CodeTracer backend exited (${code})`);
-			});
+			// backendProcess.on('exit', code => {
+			// 	console.warn(`Rust backend exited with code ${code}`);
+			// 	vscode.window.showWarningMessage(`CodeTracer backend exited (${code})`);
+			// });
 			const editor = vscode.window.activeTextEditor;
 			if (editor) {
 			
@@ -126,6 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showInformationMessage('Next clicked');
 				if (panel) {
 					panel.webview.postMessage({ command: 'next' });
+					panel.webview.postMessage({ command: 'loaded-locals', values: [{expression: "a", value: intValue(10)}]})
 				}
 			});
 
@@ -151,6 +157,11 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 	const thirdParty = panel.webview.asWebviewUri(
 		vscode.Uri.joinPath(context.extensionUri, 'media', 'third_party' , 'jstree.min.js')
 	);
+	const defaultDarkTheme = panel.webview.asWebviewUri(
+		vscode.Uri.joinPath(context.extensionUri, 'media', 'styles' , 'default_dark_theme.css')
+	);
+
+	// TODO: Add .css file to webViewContent
 
 	return `
 		<!doctype html>
@@ -158,26 +169,15 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 			<head>
 				<meta charset='utf-8'>
 				<title>CodeTracer</title>
+				<link id='theme' rel='stylesheet' href='${defaultDarkTheme}'>
 			<script>
 				inElectron = false
 				loadScripts = true
 			</script>
 			</head>
 			<body>
-				<div id='menu' class='menu'>
-				</div>
-				<div id='welcomeScreen'>
-
-				</div>
-				<div id='root-container' class='container'>
-				<div id='ROOT'>
-					<div id="context-menu-container" style="display: none;"></div>
-					<div id='fixed-search'>
-					</div>
-					<section id="main">
-					</section>
-				</div>
-
+				<div>STATE</div>
+				<div id='stateComponent-0' class='component-container active-state'></div>
 
 				<footer>
 					<div id='search-results'>
@@ -189,7 +189,23 @@ function getWebviewContent(panel: vscode.WebviewPanel, context: vscode.Extension
 				<script src="${frontendBundle}" type="text/javascript"> </script>
 				<script src='${thirdParty}' type='text/javascript'></script>
 				<script src='${uiJs}'></script>
-
+				<script>
+					let component = null
+					window.addEventListener('DOMContentLoaded', () => {
+						console.log("----- before makeComponent");
+						window.component = makeStateComponentForExtension('stateComponent-0');
+						console.log("----- after makeComponent");
+					});
+					window.addEventListener('message', event => {
+						console.log("----- this is event = ", event);
+						if (event.data.command === 'loaded-locals') {
+								console.log("----- THIS IS BEFORE REGISTER VALUES ", registerLocals);
+								registerLocals(window.component, event.data.values)
+								
+								console.log("----- THIS IS AFTER REGISTER VALUES comp = ", window.component);
+							}
+					});
+				</script>
 			</body>
 		</html>
 
