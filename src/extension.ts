@@ -167,6 +167,20 @@ export function activate(context: vscode.ExtensionContext) {
 			eventLogPanel.webview.html = utils.getEventLogWebviewContent(eventLogPanel, context);
 			terminalOutputPanel.webview.html = utils.getTerminalOutputWebviewContent(terminalOutputPanel, context);
 
+			// Subscribe for message
+			calltracePanel.webview.onDidReceiveMessage(
+				message => {
+					switch (String.fromCharCode(...message.command)) {
+						case 'calltrace-jump':
+							console.log(message.callKey);
+							calltracePanel?.webview.postMessage({ command: 'complete-call-move', callKey: message.callKey });
+							return;
+					}
+				},
+				undefined,
+				context.subscriptions
+			);
+
 			setTimeout(() => {
 				terminalOutputPanel?.reveal();
 				vscode.commands.executeCommand('workbench.action.moveEditorToBelowGroup');

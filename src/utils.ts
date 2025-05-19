@@ -27,7 +27,7 @@ function getDarkTheme(panel: vscode.WebviewPanel, context: vscode.ExtensionConte
 export function getStateWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
     let uiJs = getUiJs(panel, context);
     let frontendBundle = getFrontendBundle(panel, context);
-	let thirdParty =  getThirdParty(panel, context);
+    let thirdParty = getThirdParty(panel, context);
     let defaultDarkTheme = getDarkTheme(panel, context);
 
     // TODO: Add .css file to webViewContent
@@ -45,7 +45,6 @@ export function getStateWebviewContent(panel: vscode.WebviewPanel, context: vsco
 			</script>
 			</head>
 			<body>
-				<div>STATE</div>
 				<div id='stateComponent-0' class='component-container active-state'></div>
 
 				<footer>
@@ -78,7 +77,7 @@ export function getStateWebviewContent(panel: vscode.WebviewPanel, context: vsco
 export function getCalltraceWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
     let uiJs = getUiJs(panel, context);
     let frontendBundle = getFrontendBundle(panel, context);
-	let thirdParty =  getThirdParty(panel, context);
+    let thirdParty = getThirdParty(panel, context);
     let defaultDarkTheme = getDarkTheme(panel, context);
 
     // TODO: Add .css file to webViewContent
@@ -96,7 +95,6 @@ export function getCalltraceWebviewContent(panel: vscode.WebviewPanel, context: 
 			</script>
 			</head>
 			<body>
-				<div>CALLTRACE</div>
 				<div id='calltraceComponent-0' class='component-container active-state'></div>
 
 				<footer>
@@ -114,6 +112,11 @@ export function getCalltraceWebviewContent(panel: vscode.WebviewPanel, context: 
 					window.addEventListener('DOMContentLoaded', () => {
 						window.component = makeCalltraceComponentForExtension('calltraceComponent-0');
 					});
+					window.addEventListener('message', event => {
+						if (event.data.command === 'complete-call-move') {
+							updateCalltrace(window.component, event.data.callKey)
+						}
+					});
 				</script>
 			</body>
 		</html>
@@ -123,7 +126,7 @@ export function getCalltraceWebviewContent(panel: vscode.WebviewPanel, context: 
 export function getEventLogWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
     let uiJs = getUiJs(panel, context);
     let frontendBundle = getFrontendBundle(panel, context);
-	let thirdParty =  getThirdParty(panel, context);
+    let thirdParty = getThirdParty(panel, context);
     let defaultDarkTheme = getDarkTheme(panel, context);
 
     // TODO: Add .css file to webViewContent
@@ -141,7 +144,6 @@ export function getEventLogWebviewContent(panel: vscode.WebviewPanel, context: v
 			</script>
 			</head>
 			<body>
-				<div>EVENT LOG</div>
 				<div id='eventLogComponent-0' class='component-container active-state'></div>
 
 				<footer>
@@ -168,7 +170,7 @@ export function getEventLogWebviewContent(panel: vscode.WebviewPanel, context: v
 export function getScratchpadWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
     let uiJs = getUiJs(panel, context);
     let frontendBundle = getFrontendBundle(panel, context);
-	let thirdParty =  getThirdParty(panel, context);
+    let thirdParty = getThirdParty(panel, context);
     let defaultDarkTheme = getDarkTheme(panel, context);
 
     // TODO: Add .css file to webViewContent
@@ -186,7 +188,6 @@ export function getScratchpadWebviewContent(panel: vscode.WebviewPanel, context:
 			</script>
 			</head>
 			<body>
-				<div>SCRATCHPAD</div>
 				<div id='scratchpadComponent-0' class='component-container active-state'></div>
 
 				<footer>
@@ -213,7 +214,7 @@ export function getScratchpadWebviewContent(panel: vscode.WebviewPanel, context:
 export function getTerminalOutputWebviewContent(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): string {
     let uiJs = getUiJs(panel, context);
     let frontendBundle = getFrontendBundle(panel, context);
-	let thirdParty =  getThirdParty(panel, context);
+    let thirdParty = getThirdParty(panel, context);
     let defaultDarkTheme = getDarkTheme(panel, context);
 
     // TODO: Add .css file to webViewContent
@@ -231,7 +232,6 @@ export function getTerminalOutputWebviewContent(panel: vscode.WebviewPanel, cont
 			</script>
 			</head>
 			<body>
-				<div>TERMINAL</div>
 				<div id='terminalOutputComponent-0' class='component-container active-state'></div>
 
 				<footer>
