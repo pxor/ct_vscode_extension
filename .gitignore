@@ -3,7 +3,7 @@ node_modules/
 out/
 dist/
 
-./media
+media
 # TypeScript build artifacts
 *.tsbuildinfo
 
