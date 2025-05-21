@@ -43,30 +43,30 @@ export function activate(context: vscode.ExtensionContext) {
 		} else {
 			// Start CT
 			ctStarted = true;
-			const callerPid = process.pid.toString();
+			// const callerPid = process.pid.toString();
 
-			// Resolve trace paths
-			const traceDir = path.join(os.homedir(), '.local', 'share', 'codetracer', 'trace-1');
-			const traceFile = path.join(traceDir, 'trace.json');
-			const metadataFile = path.join(traceDir, 'trace_metadata.json');
+			// // Resolve trace paths
+			// const traceDir = path.join(os.homedir(), '.local', 'share', 'codetracer', 'trace-1');
+			// const traceFile = path.join(traceDir, 'trace.json');
+			// const metadataFile = path.join(traceDir, 'trace_metadata.json');
 
-			// Adjust for your actual Rust binary path
-			const backendPath = path.join(context.extensionPath, 'db-backend', 'db-backend');
+			// // Adjust for your actual Rust binary path
+			// const backendPath = path.join(context.extensionPath, 'db-backend', 'db-backend');
 
-			backendProcess = spawn(backendPath, [callerPid, traceFile, metadataFile], {
-				cwd: context.extensionPath,
-				env: process.env,
-				stdio: 'pipe',
-			});
+			// backendProcess = spawn(backendPath, [callerPid, traceFile, metadataFile], {
+			// 	cwd: context.extensionPath,
+			// 	env: process.env,
+			// 	stdio: 'pipe',
+			// });
 
-			backendProcess.stdout?.on('data', data => {
-				console.log(`[backend stdout]: ${data.toString()}`);
-			});
+			// backendProcess.stdout?.on('data', data => {
+			// 	console.log(`[backend stdout]: ${data.toString()}`);
+			// });
 
-			backendProcess.on('exit', code => {
-				console.warn(`Rust backend exited with code ${code}`);
-				vscode.window.showWarningMessage(`CodeTracer backend exited (${code})`);
-			});
+			// backendProcess.on('exit', code => {
+			// 	console.warn(`Rust backend exited with code ${code}`);
+			// 	vscode.window.showWarningMessage(`CodeTracer backend exited (${code})`);
+			// });
 
 			// TODO: Fix the decorations to use the flow component?
 			// const editor = vscode.window.activeTextEditor;
