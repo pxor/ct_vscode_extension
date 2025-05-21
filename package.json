@@ -16,6 +16,31 @@
       {
         "command": "ct-vscode.toggleCT",
         "title": "Toggle CodeTracer"
+      },
+      {
+        "command": "ct-vscode.openCalltrace",
+        "title": "Open Calltrace Panel",
+        "category": "CodeTracer"
+      },
+      {
+        "command": "ct-vscode.openState",
+        "title": "Open State Panel",
+        "category": "CodeTracer"
+      },
+      {
+        "command": "ct-vscode.openScratchpad",
+        "title": "Open Scratchpad Panel",
+        "category": "CodeTracer"
+      },
+      {
+        "command": "ct-vscode.openEventLog",
+        "title": "Open Event Log Panel",
+        "category": "CodeTracer"
+      },
+      {
+        "command": "ct-vscode.openTerminalOutput",
+        "title": "Open Terminal Output Panel",
+        "category": "CodeTracer"
       }
     ],
     "keybindings": [
