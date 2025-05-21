@@ -3,7 +3,6 @@ import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
 import * as utils from './utils';
-import { create } from 'domain';
 
 let backendProcess: ChildProcess | null = null;
 
@@ -61,8 +60,6 @@ function disposePanels() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('ct-vscode is now active!');
-
 	const toggleCT = vscode.commands.registerCommand('ct-vscode.toggleCT', () => {
 		if (ctStarted) {
 			// Stop CT
@@ -207,6 +204,13 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(
+			'codetracer-sidebar-panel',
+			new utils.CodeTracerViewProvider(context)
+		)
+	);
+
 	context.subscriptions.push(toggleCT);
 }
 
@@ -215,4 +219,6 @@ export function deactivate() {
 	if (statePanel) statePanel.dispose();
 	if (calltracePanel) calltracePanel.dispose();
 	if (eventLogPanel) eventLogPanel.dispose();
+	if (scratchpadPanel) scratchpadPanel.dispose();
+	if (terminalOutputPanel) terminalOutputPanel.dispose();
 }

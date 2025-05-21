@@ -1,5 +1,55 @@
 import * as vscode from 'vscode';
 
+export class CodeTracerViewProvider implements vscode.WebviewViewProvider {
+    constructor(private context: vscode.ExtensionContext) { }
+
+    resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        _context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
+    ) {
+        const webview = webviewView.webview;
+        webview.options = {
+            enableScripts: true,
+            localResourceRoots: [
+                vscode.Uri.joinPath(this.context.extensionUri, 'media')
+            ]
+        };
+
+        webview.html = this.getHtml();
+        webviewView.webview.onDidReceiveMessage(message => {
+            if (message.command === 'toggleCT') {
+                vscode.commands.executeCommand('ct-vscode.toggleCT');
+            }
+        });
+    }
+
+    private getHtml(): string {
+        return `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { font-family: sans-serif; padding: 10px; }
+            </style>
+          </head>
+          <body>
+            <h3>Command Module</h3>
+            <button id="toggleBtn">Toggle CT</button>
+      
+            <script>
+              const vscode = acquireVsCodeApi();
+              document.getElementById('toggleBtn').addEventListener('click', () => {
+                vscode.postMessage({ command: 'toggleCT' });
+              });
+            </script>
+          </body>
+          </html>
+        `;
+    }
+}
+
 function getUiJs(panel: vscode.WebviewPanel, context: vscode.ExtensionContext): vscode.Uri {
     return panel.webview.asWebviewUri(
         vscode.Uri.joinPath(context.extensionUri, 'media', 'ui.js')
