@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 type PanelId = 'stateComponent' | 'calltraceComponent' | 'scratchpadComponent' | 'eventLogComponent' | 'terminalOutputComponent';
 
-interface PanelConfig {
+export interface PanelConfig {
     id: PanelId;
     title: string;
     getContent: (panel: vscode.WebviewPanel, context: vscode.ExtensionContext) => string;

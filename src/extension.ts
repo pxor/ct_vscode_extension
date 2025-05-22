@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
-import { initPanels, disposePanels } from './initPanels';
+import { initPanels, disposePanels, disposeCommands } from './initPanels';
 import * as path from 'path';
 import * as os from 'os';
 import * as utils from './utils';
@@ -35,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			disposePanels();
+			disposeCommands();
 
 			if (backendProcess) {
 				backendProcess.kill();
@@ -140,4 +141,5 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	disposePanels();
+	disposeCommands();
 }

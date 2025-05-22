@@ -17,11 +17,30 @@ export class CodeTracerViewProvider implements vscode.WebviewViewProvider {
         };
 
         webview.html = this.getHtml();
-        webviewView.webview.onDidReceiveMessage(message => {
-            if (message.command === 'toggleCT') {
-                vscode.commands.executeCommand('ct-vscode.toggleCT');
-            }
-        });
+        webviewView.webview.onDidReceiveMessage(
+            message => {
+                switch (message.command) {
+                    case 'toggleCT':
+                        vscode.commands.executeCommand('ct-vscode.toggleCT');
+                        break;
+                    case 'openState':
+                        vscode.commands.executeCommand('ct-vscode.openState');
+                        break;
+                    case 'openScratchpad':
+                        vscode.commands.executeCommand('ct-vscode.openScratchpad');
+                        break;
+                    case 'openCalltrace':
+                        vscode.commands.executeCommand('ct-vscode.openCalltrace');
+                        break;
+                    case 'openEventLog':
+                        vscode.commands.executeCommand('ct-vscode.openEventLog');
+                        break;
+                    case 'openTerminalOutput':
+                        vscode.commands.executeCommand('ct-vscode.openTerminalOutput');
+                        break;
+                }
+            },
+        );
     }
 
     private getHtml(): string {
@@ -32,16 +51,41 @@ export class CodeTracerViewProvider implements vscode.WebviewViewProvider {
             <meta charset="UTF-8">
             <style>
               body { font-family: sans-serif; padding: 10px; }
+              div { display: flex; flex-direction: column }
             </style>
           </head>
           <body>
             <h3>Command Module</h3>
             <button id="toggleBtn">Toggle CT</button>
+            </br>
+            <div>
+                <button id="state">Open State</button>
+                <button id="scratchpad">Open Scratchpad</button>
+                <button id="calltrace">Open Calltrace</button>
+                <button id="eventLog">Open EventLog</button>
+                <button id="terminalOutput">Open Terminal Output</button>
+            </div>
+            
       
             <script>
               const vscode = acquireVsCodeApi();
               document.getElementById('toggleBtn').addEventListener('click', () => {
                 vscode.postMessage({ command: 'toggleCT' });
+              });
+              document.getElementById('state').addEventListener('click', () => {
+                vscode.postMessage({ command: 'openState' });
+              });
+              document.getElementById('scratchpad').addEventListener('click', () => {
+                vscode.postMessage({ command: 'openScratchpad' });
+              });
+              document.getElementById('calltrace').addEventListener('click', () => {
+                vscode.postMessage({ command: 'openCalltrace' });
+              });
+              document.getElementById('eventLog').addEventListener('click', () => {
+                vscode.postMessage({ command: 'openEventLog' });
+              });
+              document.getElementById('terminalOutput').addEventListener('click', () => {
+                vscode.postMessage({ command: 'openTerminalOutput' });
               });
             </script>
           </body>
