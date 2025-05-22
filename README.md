@@ -23,10 +23,10 @@ npm install
 
 ### 3. Compile the Extension
 
-Build the TypeScript files:
+Build the TypeScript and CodeTracer files:
 
 ```bash
-npm run compile
+just build
 ```
 
 ### 4. Open the Extension in VS Code
@@ -58,3 +58,5 @@ In the new Extension Development Host window:
     Search for and run:
 
     "Toggle CodeTracer"
+
+    Or use the sidebar panel to "Toggle CT"
